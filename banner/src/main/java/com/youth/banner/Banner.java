@@ -34,50 +34,53 @@ import static android.support.v4.view.ViewPager.OnPageChangeListener;
 import static android.support.v4.view.ViewPager.PageTransformer;
 
 public class Banner extends FrameLayout implements OnPageChangeListener {
-    public String tag = "banner";
-    private int mIndicatorMargin = BannerConfig.PADDING_SIZE;
+    public String tag;
+    private int mIndicatorMargin;
     private int mIndicatorWidth;
     private int mIndicatorHeight;
     private int indicatorSize;
-    private int bannerBackgroundImage;
-    private int bannerStyle = BannerConfig.CIRCLE_INDICATOR;
-    private int delayTime = BannerConfig.TIME;
-    private int scrollTime = BannerConfig.DURATION;
-    private boolean isAutoPlay = BannerConfig.IS_AUTO_PLAY;
-    private boolean isScroll = BannerConfig.IS_SCROLL;
-    private int mIndicatorSelectedResId = R.drawable.gray_radius;
-    private int mIndicatorUnselectedResId = R.drawable.white_radius;
-    private int mLayoutResId = R.layout.banner;
+    private int bannerStyle;
+    private int delayTime;
+    private int scrollTime;
+    private boolean isAutoPlay;
+    private boolean isScroll;
+    private int mIndicatorSelectedResId;
+    private int mIndicatorUnselectedResId;
+    private int mLayoutResId;
     private int titleHeight;
     private int titleBackground;
     private int titleTextColor;
     private int titleTextSize;
-    private int count = 0;
+    private int count;
     private int currentItem;
-    private int gravity = -1;
-    private int lastPosition = 1;
-    private int scaleType = 1;
+    private int gravity;
+    private int lastPosition;
+    private int scaleType;
     private List<String> titles;
     private List imageUrls;
     private List<View> imageViews;
     private List<ImageView> indicatorImages;
-    private Context context;
     private BannerViewPager viewPager;
-    private TextView bannerTitle, numIndicatorInside, numIndicator;
-    private LinearLayout indicator, indicatorInside, titleView;
-    private ImageView bannerDefaultImage;
+    private TextView bannerTitle;
+    private TextView numIndicatorInside;
+    private TextView numIndicator;
+    private LinearLayout indicator;
+    private LinearLayout indicatorInside;
+    private LinearLayout titleView;
     private ImageLoaderInterface imageLoader;
-    private BannerPagerAdapter adapter;
+    private Banner.BannerPagerAdapter adapter;
     private OnPageChangeListener mOnPageChangeListener;
     private BannerScroller mScroller;
     private OnBannerClickListener bannerListener;
     private OnBannerListener listener;
     private DisplayMetrics dm;
-
-    private WeakHandler handler = new WeakHandler();
+    private Context context;
+    private WeakHandler handler;
+    private int circle_paddingbuttom;
+    private final Runnable task;
 
     public Banner(Context context) {
-        this(context, null);
+        this(context, (AttributeSet)null);
     }
 
     public Banner(Context context, AttributeSet attrs) {
@@ -86,67 +89,95 @@ public class Banner extends FrameLayout implements OnPageChangeListener {
 
     public Banner(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        this.tag = "banner";
+        this.mIndicatorMargin = 5;
+        this.bannerStyle = 1;
+        this.delayTime = 2000;
+        this.scrollTime = 800;
+        this.isAutoPlay = true;
+        this.isScroll = true;
+        this.mIndicatorSelectedResId = drawable.gray_radius;
+        this.mIndicatorUnselectedResId = drawable.white_radius;
+        this.mLayoutResId = layout.banner;
+        this.count = 0;
+        this.gravity = -1;
+        this.lastPosition = 1;
+        this.scaleType = 1;
+        this.handler = new WeakHandler();
+        this.task = new Runnable() {
+            public void run() {
+                if(Banner.this.count > 1 && Banner.this.isAutoPlay) {
+                    Banner.this.currentItem = Banner.this.currentItem % (Banner.this.count + 1) + 1;
+                    if(Banner.this.currentItem == 1) {
+                        Banner.this.viewPager.setCurrentItem(Banner.this.currentItem, false);
+                        Banner.this.handler.post(Banner.this.task);
+                    } else {
+                        Banner.this.viewPager.setCurrentItem(Banner.this.currentItem);
+                        Banner.this.handler.postDelayed(Banner.this.task, (long)Banner.this.delayTime);
+                    }
+                }
+
+            }
+        };
         this.context = context;
-        titles = new ArrayList<>();
-        imageUrls = new ArrayList<>();
-        imageViews = new ArrayList<>();
-        indicatorImages = new ArrayList<>();
-        dm = context.getResources().getDisplayMetrics();
-        indicatorSize = dm.widthPixels / 80;
-        initView(context, attrs);
+        this.titles = new ArrayList();
+        this.imageUrls = new ArrayList();
+        this.imageViews = new ArrayList();
+        this.indicatorImages = new ArrayList();
+        this.dm = context.getResources().getDisplayMetrics();
+        this.indicatorSize = this.dm.widthPixels / 80;
+        this.initView(context, attrs);
     }
 
     private void initView(Context context, AttributeSet attrs) {
-        imageViews.clear();
-        handleTypedArray(context, attrs);
-        View view = LayoutInflater.from(context).inflate(mLayoutResId, this, true);
-        bannerDefaultImage = (ImageView) view.findViewById(R.id.bannerDefaultImage);
-        viewPager = (BannerViewPager) view.findViewById(R.id.bannerViewPager);
-        titleView = (LinearLayout) view.findViewById(R.id.titleView);
-        indicator = (LinearLayout) view.findViewById(R.id.circleIndicator);
-        indicatorInside = (LinearLayout) view.findViewById(R.id.indicatorInside);
-        bannerTitle = (TextView) view.findViewById(R.id.bannerTitle);
-        numIndicator = (TextView) view.findViewById(R.id.numIndicator);
-        numIndicatorInside = (TextView) view.findViewById(R.id.numIndicatorInside);
-        bannerDefaultImage.setImageResource(bannerBackgroundImage);
-        initViewPagerScroll();
+        this.imageViews.clear();
+        this.handleTypedArray(context, attrs);
+        View view = LayoutInflater.from(context).inflate(this.mLayoutResId, this, true);
+        this.viewPager = (BannerViewPager)view.findViewById(id.bannerViewPager);
+        this.titleView = (LinearLayout)view.findViewById(id.titleView);
+        this.indicator = (LinearLayout)view.findViewById(id.circleIndicator);
+        this.indicator.setPadding(0, 0, 0, this.circle_paddingbuttom);
+        this.indicatorInside = (LinearLayout)view.findViewById(id.indicatorInside);
+        this.bannerTitle = (TextView)view.findViewById(id.bannerTitle);
+        this.numIndicator = (TextView)view.findViewById(id.numIndicator);
+        this.numIndicatorInside = (TextView)view.findViewById(id.numIndicatorInside);
+        this.initViewPagerScroll();
     }
 
     private void handleTypedArray(Context context, AttributeSet attrs) {
-        if (attrs == null) {
-            return;
+        if(attrs != null) {
+            TypedArray typedArray = context.obtainStyledAttributes(attrs, styleable.Banner);
+            this.mIndicatorWidth = typedArray.getDimensionPixelSize(styleable.Banner_indicator_width, this.indicatorSize);
+            this.circle_paddingbuttom = typedArray.getDimensionPixelSize(styleable.Banner_circle_paddingbuttom, 0);
+            this.mIndicatorHeight = typedArray.getDimensionPixelSize(styleable.Banner_indicator_height, this.indicatorSize);
+            this.mIndicatorMargin = typedArray.getDimensionPixelSize(styleable.Banner_indicator_margin, 5);
+            this.mIndicatorSelectedResId = typedArray.getResourceId(styleable.Banner_indicator_drawable_selected, drawable.gray_radius);
+            this.mIndicatorUnselectedResId = typedArray.getResourceId(styleable.Banner_indicator_drawable_unselected, drawable.white_radius);
+            this.scaleType = typedArray.getInt(styleable.Banner_image_scale_type, this.scaleType);
+            this.delayTime = typedArray.getInt(styleable.Banner_delay_time, 2000);
+            this.scrollTime = typedArray.getInt(styleable.Banner_scroll_time, 800);
+            this.isAutoPlay = typedArray.getBoolean(styleable.Banner_is_auto_play, true);
+            this.titleBackground = typedArray.getColor(styleable.Banner_title_background, -1);
+            this.titleHeight = typedArray.getDimensionPixelSize(styleable.Banner_title_height, -1);
+            this.titleTextColor = typedArray.getColor(styleable.Banner_title_textcolor, -1);
+            this.titleTextSize = typedArray.getDimensionPixelSize(styleable.Banner_title_textsize, -1);
+            this.mLayoutResId = typedArray.getResourceId(styleable.Banner_layout_id, this.mLayoutResId);
+            typedArray.recycle();
         }
-        TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.Banner);
-        mIndicatorWidth = typedArray.getDimensionPixelSize(R.styleable.Banner_indicator_width, indicatorSize);
-        mIndicatorHeight = typedArray.getDimensionPixelSize(R.styleable.Banner_indicator_height, indicatorSize);
-        mIndicatorMargin = typedArray.getDimensionPixelSize(R.styleable.Banner_indicator_margin, BannerConfig.PADDING_SIZE);
-        mIndicatorSelectedResId = typedArray.getResourceId(R.styleable.Banner_indicator_drawable_selected, R.drawable.gray_radius);
-        mIndicatorUnselectedResId = typedArray.getResourceId(R.styleable.Banner_indicator_drawable_unselected, R.drawable.white_radius);
-        scaleType = typedArray.getInt(R.styleable.Banner_image_scale_type, scaleType);
-        delayTime = typedArray.getInt(R.styleable.Banner_delay_time, BannerConfig.TIME);
-        scrollTime = typedArray.getInt(R.styleable.Banner_scroll_time, BannerConfig.DURATION);
-        isAutoPlay = typedArray.getBoolean(R.styleable.Banner_is_auto_play, BannerConfig.IS_AUTO_PLAY);
-        titleBackground = typedArray.getColor(R.styleable.Banner_title_background, BannerConfig.TITLE_BACKGROUND);
-        titleHeight = typedArray.getDimensionPixelSize(R.styleable.Banner_title_height, BannerConfig.TITLE_HEIGHT);
-        titleTextColor = typedArray.getColor(R.styleable.Banner_title_textcolor, BannerConfig.TITLE_TEXT_COLOR);
-        titleTextSize = typedArray.getDimensionPixelSize(R.styleable.Banner_title_textsize, BannerConfig.TITLE_TEXT_SIZE);
-        mLayoutResId = typedArray.getResourceId(R.styleable.Banner_banner_layout, mLayoutResId);
-        bannerBackgroundImage = typedArray.getResourceId(R.styleable.Banner_banner_default_image, R.drawable.no_banner);
-        typedArray.recycle();
     }
 
     private void initViewPagerScroll() {
         try {
-            Field mField = ViewPager.class.getDeclaredField("mScroller");
-            mField.setAccessible(true);
-            mScroller = new BannerScroller(viewPager.getContext());
-            mScroller.setDuration(scrollTime);
-            mField.set(viewPager, mScroller);
-        } catch (Exception e) {
-            Log.e(tag, e.getMessage());
+            Field e = ViewPager.class.getDeclaredField("mScroller");
+            e.setAccessible(true);
+            this.mScroller = new BannerScroller(this.viewPager.getContext());
+            this.mScroller.setDuration(this.scrollTime);
+            e.set(this.viewPager, this.mScroller);
+        } catch (Exception var2) {
+            Log.e(this.tag, var2.getMessage());
         }
-    }
 
+    }
 
     public Banner isAutoPlay(boolean isAutoPlay) {
         this.isAutoPlay = isAutoPlay;
@@ -164,56 +195,40 @@ public class Banner extends FrameLayout implements OnPageChangeListener {
     }
 
     public Banner setIndicatorGravity(int type) {
-        switch (type) {
-            case BannerConfig.LEFT:
-                this.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
-                break;
-            case BannerConfig.CENTER:
-                this.gravity = Gravity.CENTER;
-                break;
-            case BannerConfig.RIGHT:
-                this.gravity = Gravity.RIGHT | Gravity.CENTER_VERTICAL;
-                break;
+        switch(type) {
+        case 5:
+            this.gravity = 19;
+            break;
+        case 6:
+            this.gravity = 17;
+            break;
+        case 7:
+            this.gravity = 21;
         }
+
         return this;
     }
 
     public Banner setBannerAnimation(Class<? extends PageTransformer> transformer) {
         try {
-            setPageTransformer(true, transformer.newInstance());
-        } catch (Exception e) {
-            Log.e(tag, "Please set the PageTransformer class");
+            this.setPageTransformer(true, (PageTransformer)transformer.newInstance());
+        } catch (Exception var3) {
+            Log.e(this.tag, "Please set the PageTransformer class");
         }
+
         return this;
     }
 
-    /**
-     * Set the number of pages that should be retained to either side of the
-     * current page in the view hierarchy in an idle state. Pages beyond this
-     * limit will be recreated from the adapter when needed.
-     *
-     * @param limit How many pages will be kept offscreen in an idle state.
-     * @return Banner
-     */
     public Banner setOffscreenPageLimit(int limit) {
-        if (viewPager != null) {
-            viewPager.setOffscreenPageLimit(limit);
+        if(this.viewPager != null) {
+            this.viewPager.setOffscreenPageLimit(limit);
         }
+
         return this;
     }
 
-    /**
-     * Set a {@link PageTransformer} that will be called for each attached page whenever
-     * the scroll position is changed. This allows the application to apply custom property
-     * transformations to each page, overriding the default sliding look and feel.
-     *
-     * @param reverseDrawingOrder true if the supplied PageTransformer requires page views
-     *                            to be drawn from last to first instead of first to last.
-     * @param transformer         PageTransformer that will modify each page's animation properties
-     * @return Banner
-     */
     public Banner setPageTransformer(boolean reverseDrawingOrder, PageTransformer transformer) {
-        viewPager.setPageTransformer(reverseDrawingOrder, transformer);
+        this.viewPager.setPageTransformer(reverseDrawingOrder, transformer);
         return this;
     }
 
@@ -239,398 +254,398 @@ public class Banner extends FrameLayout implements OnPageChangeListener {
     }
 
     public void update(List<?> imageUrls, List<String> titles) {
+        this.imageUrls.clear();
         this.titles.clear();
+        this.imageUrls.addAll(imageUrls);
         this.titles.addAll(titles);
-        update(imageUrls);
+        this.count = this.imageUrls.size();
+        this.start();
     }
 
     public void update(List<?> imageUrls) {
         this.imageUrls.clear();
-        this.imageViews.clear();
-        this.indicatorImages.clear();
         this.imageUrls.addAll(imageUrls);
         this.count = this.imageUrls.size();
-        start();
+        this.start();
     }
 
     public void updateBannerStyle(int bannerStyle) {
-        indicator.setVisibility(GONE);
-        numIndicator.setVisibility(GONE);
-        numIndicatorInside.setVisibility(GONE);
-        indicatorInside.setVisibility(GONE);
-        bannerTitle.setVisibility(View.GONE);
-        titleView.setVisibility(View.GONE);
+        this.indicator.setVisibility(8);
+        this.numIndicator.setVisibility(8);
+        this.numIndicatorInside.setVisibility(8);
+        this.indicatorInside.setVisibility(8);
+        this.bannerTitle.setVisibility(8);
+        this.titleView.setVisibility(8);
         this.bannerStyle = bannerStyle;
-        start();
+        this.start();
     }
 
     public Banner start() {
-        setBannerStyleUI();
-        setImageList(imageUrls);
-        setData();
+        this.setBannerStyleUI();
+        this.setImageList(this.imageUrls);
+        this.setData();
         return this;
     }
 
     private void setTitleStyleUI() {
-        if (titles.size() != imageUrls.size()) {
+        if(this.titles.size() != this.imageUrls.size()) {
             throw new RuntimeException("[Banner] --> The number of titles and images is different");
-        }
-        if (titleBackground != -1) {
-            titleView.setBackgroundColor(titleBackground);
-        }
-        if (titleHeight != -1) {
-            titleView.setLayoutParams(new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, titleHeight));
-        }
-        if (titleTextColor != -1) {
-            bannerTitle.setTextColor(titleTextColor);
-        }
-        if (titleTextSize != -1) {
-            bannerTitle.setTextSize(TypedValue.COMPLEX_UNIT_PX, titleTextSize);
-        }
-        if (titles != null && titles.size() > 0) {
-            bannerTitle.setText(titles.get(0));
-            bannerTitle.setVisibility(View.VISIBLE);
-            titleView.setVisibility(View.VISIBLE);
+        } else {
+            if(this.titleBackground != -1) {
+                this.titleView.setBackgroundColor(this.titleBackground);
+            }
+
+            if(this.titleHeight != -1) {
+                this.titleView.setLayoutParams(new LayoutParams(-1, this.titleHeight));
+            }
+
+            if(this.titleTextColor != -1) {
+                this.bannerTitle.setTextColor(this.titleTextColor);
+            }
+
+            if(this.titleTextSize != -1) {
+                this.bannerTitle.setTextSize(0, (float)this.titleTextSize);
+            }
+
+            if(this.titles != null && this.titles.size() > 0) {
+                this.bannerTitle.setText((CharSequence)this.titles.get(0));
+                this.bannerTitle.setVisibility(0);
+                this.titleView.setVisibility(0);
+            }
+
         }
     }
 
     private void setBannerStyleUI() {
-        int visibility =count > 1 ? View.VISIBLE :View.GONE;
-        switch (bannerStyle) {
-            case BannerConfig.CIRCLE_INDICATOR:
-                indicator.setVisibility(visibility);
-                break;
-            case BannerConfig.NUM_INDICATOR:
-                numIndicator.setVisibility(visibility);
-                break;
-            case BannerConfig.NUM_INDICATOR_TITLE:
-                numIndicatorInside.setVisibility(visibility);
-                setTitleStyleUI();
-                break;
-            case BannerConfig.CIRCLE_INDICATOR_TITLE:
-                indicator.setVisibility(visibility);
-                setTitleStyleUI();
-                break;
-            case BannerConfig.CIRCLE_INDICATOR_TITLE_INSIDE:
-                indicatorInside.setVisibility(visibility);
-                setTitleStyleUI();
-                break;
+        byte visibility;
+        if(this.count > 1) {
+            visibility = 0;
+        } else {
+            visibility = 8;
         }
+
+        switch(this.bannerStyle) {
+        case 1:
+            this.indicator.setVisibility(visibility);
+            break;
+        case 2:
+            this.numIndicator.setVisibility(visibility);
+            break;
+        case 3:
+            this.numIndicatorInside.setVisibility(visibility);
+            this.setTitleStyleUI();
+            break;
+        case 4:
+            this.indicator.setVisibility(visibility);
+            this.setTitleStyleUI();
+            break;
+        case 5:
+            this.indicatorInside.setVisibility(visibility);
+            this.setTitleStyleUI();
+        }
+
     }
 
     private void initImages() {
-        imageViews.clear();
-        if (bannerStyle == BannerConfig.CIRCLE_INDICATOR ||
-                bannerStyle == BannerConfig.CIRCLE_INDICATOR_TITLE ||
-                bannerStyle == BannerConfig.CIRCLE_INDICATOR_TITLE_INSIDE) {
-            createIndicator();
-        } else if (bannerStyle == BannerConfig.NUM_INDICATOR_TITLE) {
-            numIndicatorInside.setText("1/" + count);
-        } else if (bannerStyle == BannerConfig.NUM_INDICATOR) {
-            numIndicator.setText("1/" + count);
+        this.imageViews.clear();
+        if(this.bannerStyle != 1 && this.bannerStyle != 4 && this.bannerStyle != 5) {
+            if(this.bannerStyle == 3) {
+                this.numIndicatorInside.setText("1/" + this.count);
+            } else if(this.bannerStyle == 2) {
+                this.numIndicator.setText("1/" + this.count);
+            }
+        } else {
+            this.createIndicator();
         }
+
     }
 
     private void setImageList(List<?> imagesUrl) {
-        if (imagesUrl == null || imagesUrl.size() <= 0) {
-            bannerDefaultImage.setVisibility(VISIBLE);
-            Log.e(tag, "The image data set is empty.");
-            return;
-        }
-        bannerDefaultImage.setVisibility(GONE);
-        initImages();
-        for (int i = 0; i <= count + 1; i++) {
-            View imageView = null;
-            if (imageLoader != null) {
-                imageView = imageLoader.createImageView(context);
+        if(imagesUrl != null && imagesUrl.size() > 0) {
+            this.initImages();
+
+            for(int i = 0; i <= this.count + 1; ++i) {
+                Object imageView = null;
+                if(this.imageLoader != null) {
+                    imageView = this.imageLoader.createImageView(this.context);
+                }
+
+                if(imageView == null) {
+                    imageView = new ImageView(this.context);
+                }
+
+                this.setScaleType((View)imageView);
+                Object url = null;
+                if(i == 0) {
+                    url = imagesUrl.get(this.count - 1);
+                } else if(i == this.count + 1) {
+                    url = imagesUrl.get(0);
+                } else {
+                    url = imagesUrl.get(i - 1);
+                }
+
+                this.imageViews.add(imageView);
+                if(this.imageLoader != null) {
+                    this.imageLoader.displayImage(this.context, url, (View)imageView);
+                } else {
+                    Log.e(this.tag, "Please set images loader.");
+                }
             }
-            if (imageView == null) {
-                imageView = new ImageView(context);
-            }
-            setScaleType(imageView);
-            Object url = null;
-            if (i == 0) {
-                url = imagesUrl.get(count - 1);
-            } else if (i == count + 1) {
-                url = imagesUrl.get(0);
-            } else {
-                url = imagesUrl.get(i - 1);
-            }
-            imageViews.add(imageView);
-            if (imageLoader != null)
-                imageLoader.displayImage(context, url, imageView);
-            else
-                Log.e(tag, "Please set images loader.");
+
+        } else {
+            Log.e(this.tag, "Please set the images data.");
         }
     }
 
     private void setScaleType(View imageView) {
-        if (imageView instanceof ImageView) {
-            ImageView view = ((ImageView) imageView);
-            switch (scaleType) {
-                case 0:
-                    view.setScaleType(ScaleType.CENTER);
-                    break;
-                case 1:
-                    view.setScaleType(ScaleType.CENTER_CROP);
-                    break;
-                case 2:
-                    view.setScaleType(ScaleType.CENTER_INSIDE);
-                    break;
-                case 3:
-                    view.setScaleType(ScaleType.FIT_CENTER);
-                    break;
-                case 4:
-                    view.setScaleType(ScaleType.FIT_END);
-                    break;
-                case 5:
-                    view.setScaleType(ScaleType.FIT_START);
-                    break;
-                case 6:
-                    view.setScaleType(ScaleType.FIT_XY);
-                    break;
-                case 7:
-                    view.setScaleType(ScaleType.MATRIX);
-                    break;
+        if(imageView instanceof ImageView) {
+            ImageView view = (ImageView)imageView;
+            switch(this.scaleType) {
+            case 0:
+                view.setScaleType(ScaleType.CENTER);
+                break;
+            case 1:
+                view.setScaleType(ScaleType.CENTER_CROP);
+                break;
+            case 2:
+                view.setScaleType(ScaleType.CENTER_INSIDE);
+                break;
+            case 3:
+                view.setScaleType(ScaleType.FIT_CENTER);
+                break;
+            case 4:
+                view.setScaleType(ScaleType.FIT_END);
+                break;
+            case 5:
+                view.setScaleType(ScaleType.FIT_START);
+                break;
+            case 6:
+                view.setScaleType(ScaleType.FIT_XY);
+                break;
+            case 7:
+                view.setScaleType(ScaleType.MATRIX);
             }
-
         }
+
     }
 
     private void createIndicator() {
-        indicatorImages.clear();
-        indicator.removeAllViews();
-        indicatorInside.removeAllViews();
-        for (int i = 0; i < count; i++) {
-            ImageView imageView = new ImageView(context);
-            imageView.setScaleType(ScaleType.CENTER_CROP);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(mIndicatorWidth, mIndicatorHeight);
-            params.leftMargin = mIndicatorMargin;
-            params.rightMargin = mIndicatorMargin;
-            if (i == 0) {
-                imageView.setImageResource(mIndicatorSelectedResId);
-            } else {
-                imageView.setImageResource(mIndicatorUnselectedResId);
-            }
-            indicatorImages.add(imageView);
-            if (bannerStyle == BannerConfig.CIRCLE_INDICATOR ||
-                    bannerStyle == BannerConfig.CIRCLE_INDICATOR_TITLE)
-                indicator.addView(imageView, params);
-            else if (bannerStyle == BannerConfig.CIRCLE_INDICATOR_TITLE_INSIDE)
-                indicatorInside.addView(imageView, params);
-        }
-    }
+        this.indicatorImages.clear();
+        this.indicator.removeAllViews();
+        this.indicatorInside.removeAllViews();
 
+        for(int i = 0; i < this.count; ++i) {
+            ImageView imageView = new ImageView(this.context);
+            imageView.setScaleType(ScaleType.CENTER_CROP);
+            android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(this.mIndicatorWidth, this.mIndicatorHeight);
+            params.leftMargin = this.mIndicatorMargin;
+            params.rightMargin = this.mIndicatorMargin;
+            if(i == 0) {
+                imageView.setImageResource(this.mIndicatorSelectedResId);
+            } else {
+                imageView.setImageResource(this.mIndicatorUnselectedResId);
+            }
+
+            this.indicatorImages.add(imageView);
+            if(this.bannerStyle != 1 && this.bannerStyle != 4) {
+                if(this.bannerStyle == 5) {
+                    this.indicatorInside.addView(imageView, params);
+                }
+            } else {
+                this.indicator.addView(imageView, params);
+            }
+        }
+
+    }
 
     private void setData() {
-        currentItem = 1;
-        if (adapter == null) {
-            adapter = new BannerPagerAdapter();
-            viewPager.addOnPageChangeListener(this);
+        this.currentItem = 1;
+        if(this.adapter == null) {
+            this.adapter = new Banner.BannerPagerAdapter();
+            this.viewPager.addOnPageChangeListener(this);
         }
-        viewPager.setAdapter(adapter);
-        viewPager.setFocusable(true);
-        viewPager.setCurrentItem(1);
-        if (gravity != -1)
-            indicator.setGravity(gravity);
-        if (isScroll && count > 1) {
-            viewPager.setScrollable(true);
+
+        this.viewPager.setAdapter(this.adapter);
+        this.viewPager.setFocusable(true);
+        this.viewPager.setCurrentItem(1);
+        if(this.gravity != -1) {
+            this.indicator.setGravity(this.gravity);
+        }
+
+        if(this.isScroll && this.count > 1) {
+            this.viewPager.setScrollable(true);
         } else {
-            viewPager.setScrollable(false);
+            this.viewPager.setScrollable(false);
         }
-        if (isAutoPlay)
-            startAutoPlay();
+
+        if(this.isAutoPlay) {
+            this.startAutoPlay();
+        }
+
     }
 
-
     public void startAutoPlay() {
-        handler.removeCallbacks(task);
-        handler.postDelayed(task, delayTime);
+        this.handler.removeCallbacks(this.task);
+        this.handler.postDelayed(this.task, (long)this.delayTime);
     }
 
     public void stopAutoPlay() {
-        handler.removeCallbacks(task);
+        this.handler.removeCallbacks(this.task);
     }
 
-    private final Runnable task = new Runnable() {
-        @Override
-        public void run() {
-            if (count > 1 && isAutoPlay) {
-                currentItem = currentItem % (count + 1) + 1;
-//                Log.i(tag, "curr:" + currentItem + " count:" + count);
-                if (currentItem == 1) {
-                    viewPager.setCurrentItem(currentItem, false);
-                    handler.post(task);
-                } else {
-                    viewPager.setCurrentItem(currentItem);
-                    handler.postDelayed(task, delayTime);
-                }
-            }
-        }
-    };
-
-    @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-//        Log.i(tag, ev.getAction() + "--" + isAutoPlay);
-        if (isAutoPlay) {
+        if(this.isAutoPlay) {
             int action = ev.getAction();
-            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL
-                    || action == MotionEvent.ACTION_OUTSIDE) {
-                startAutoPlay();
-            } else if (action == MotionEvent.ACTION_DOWN) {
-                stopAutoPlay();
+            if(action != 1 && action != 3 && action != 4) {
+                if(action == 0) {
+                    this.stopAutoPlay();
+                }
+            } else {
+                this.startAutoPlay();
             }
         }
+
         return super.dispatchTouchEvent(ev);
     }
 
-    /**
-     * 返回真实的位置
-     *
-     * @param position
-     * @return 下标从0开始
-     */
     public int toRealPosition(int position) {
-        int realPosition = (position - 1) % count;
-        if (realPosition < 0)
-            realPosition += count;
+        int realPosition = (position - 1) % this.count;
+        if(realPosition < 0) {
+            realPosition += this.count;
+        }
+
         return realPosition;
     }
 
-    class BannerPagerAdapter extends PagerAdapter {
-
-        @Override
-        public int getCount() {
-            return imageViews.size();
-        }
-
-        @Override
-        public boolean isViewFromObject(View view, Object object) {
-            return view == object;
-        }
-
-        @Override
-        public Object instantiateItem(ViewGroup container, final int position) {
-            container.addView(imageViews.get(position));
-            View view = imageViews.get(position);
-            if (bannerListener != null) {
-                view.setOnClickListener(new OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Log.e(tag, "你正在使用旧版点击事件接口，下标是从1开始，" +
-                                "为了体验请更换为setOnBannerListener，下标从0开始计算");
-                        bannerListener.OnBannerClick(position);
-                    }
-                });
-            }
-            if (listener != null) {
-                view.setOnClickListener(new OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        listener.OnBannerClick(toRealPosition(position));
-                    }
-                });
-            }
-            return view;
-        }
-
-        @Override
-        public void destroyItem(ViewGroup container, int position, Object object) {
-            container.removeView((View) object);
-        }
-
-    }
-
-    @Override
     public void onPageScrollStateChanged(int state) {
-        if (mOnPageChangeListener != null) {
-            mOnPageChangeListener.onPageScrollStateChanged(state);
+        if(this.mOnPageChangeListener != null) {
+            this.mOnPageChangeListener.onPageScrollStateChanged(state);
         }
-//        Log.i(tag,"currentItem: "+currentItem);
-        switch (state) {
-            case 0://No operation
-                if (currentItem == 0) {
-                    viewPager.setCurrentItem(count, false);
-                } else if (currentItem == count + 1) {
-                    viewPager.setCurrentItem(1, false);
-                }
-                break;
-            case 1://start Sliding
-                if (currentItem == count + 1) {
-                    viewPager.setCurrentItem(1, false);
-                } else if (currentItem == 0) {
-                    viewPager.setCurrentItem(count, false);
-                }
-                break;
-            case 2://end Sliding
-                break;
+
+        this.currentItem = this.viewPager.getCurrentItem();
+        switch(state) {
+        case 0:
+            if(this.currentItem == 0) {
+                this.viewPager.setCurrentItem(this.count, false);
+            } else if(this.currentItem == this.count + 1) {
+                this.viewPager.setCurrentItem(1, false);
+            }
+            break;
+        case 1:
+            if(this.currentItem == this.count + 1) {
+                this.viewPager.setCurrentItem(1, false);
+            } else if(this.currentItem == 0) {
+                this.viewPager.setCurrentItem(this.count, false);
+            }
+        case 2:
         }
+
     }
 
-    @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        if (mOnPageChangeListener != null) {
-            mOnPageChangeListener.onPageScrolled(toRealPosition(position), positionOffset, positionOffsetPixels);
+        if(this.mOnPageChangeListener != null) {
+            this.mOnPageChangeListener.onPageScrolled(position, positionOffset, positionOffsetPixels);
         }
+
     }
 
-    @Override
     public void onPageSelected(int position) {
-        currentItem=position;
-        if (mOnPageChangeListener != null) {
-            mOnPageChangeListener.onPageSelected(toRealPosition(position));
+        if(this.mOnPageChangeListener != null) {
+            this.mOnPageChangeListener.onPageSelected(position);
         }
-        if (bannerStyle == BannerConfig.CIRCLE_INDICATOR ||
-                bannerStyle == BannerConfig.CIRCLE_INDICATOR_TITLE ||
-                bannerStyle == BannerConfig.CIRCLE_INDICATOR_TITLE_INSIDE) {
-            indicatorImages.get((lastPosition - 1 + count) % count).setImageResource(mIndicatorUnselectedResId);
-            indicatorImages.get((position - 1 + count) % count).setImageResource(mIndicatorSelectedResId);
-            lastPosition = position;
+
+        if(this.bannerStyle == 1 || this.bannerStyle == 4 || this.bannerStyle == 5) {
+            ((ImageView)this.indicatorImages.get((this.lastPosition - 1 + this.count) % this.count)).setImageResource(this.mIndicatorUnselectedResId);
+            ((ImageView)this.indicatorImages.get((position - 1 + this.count) % this.count)).setImageResource(this.mIndicatorSelectedResId);
+            this.lastPosition = position;
         }
-        if (position == 0) position = count;
-        if (position > count) position = 1;
-        switch (bannerStyle) {
-            case BannerConfig.CIRCLE_INDICATOR:
-                break;
-            case BannerConfig.NUM_INDICATOR:
-                numIndicator.setText(position + "/" + count);
-                break;
-            case BannerConfig.NUM_INDICATOR_TITLE:
-                numIndicatorInside.setText(position + "/" + count);
-                bannerTitle.setText(titles.get(position - 1));
-                break;
-            case BannerConfig.CIRCLE_INDICATOR_TITLE:
-                bannerTitle.setText(titles.get(position - 1));
-                break;
-            case BannerConfig.CIRCLE_INDICATOR_TITLE_INSIDE:
-                bannerTitle.setText(titles.get(position - 1));
-                break;
+
+        if(position == 0) {
+            position = this.count;
+        }
+
+        if(position > this.count) {
+            position = 1;
+        }
+
+        switch(this.bannerStyle) {
+        case 1:
+        default:
+            break;
+        case 2:
+            this.numIndicator.setText(position + "/" + this.count);
+            break;
+        case 3:
+            this.numIndicatorInside.setText(position + "/" + this.count);
+            this.bannerTitle.setText((CharSequence)this.titles.get(position - 1));
+            break;
+        case 4:
+            this.bannerTitle.setText((CharSequence)this.titles.get(position - 1));
+            break;
+        case 5:
+            this.bannerTitle.setText((CharSequence)this.titles.get(position - 1));
         }
 
     }
 
+    /** @deprecated */
     @Deprecated
     public Banner setOnBannerClickListener(OnBannerClickListener listener) {
         this.bannerListener = listener;
         return this;
     }
 
-    /**
-     * 废弃了旧版接口，新版的接口下标是从1开始，同时解决下标越界问题
-     *
-     * @param listener
-     * @return
-     */
     public Banner setOnBannerListener(OnBannerListener listener) {
         this.listener = listener;
         return this;
     }
 
     public void setOnPageChangeListener(OnPageChangeListener onPageChangeListener) {
-        mOnPageChangeListener = onPageChangeListener;
+        this.mOnPageChangeListener = onPageChangeListener;
     }
 
     public void releaseBanner() {
-        handler.removeCallbacksAndMessages(null);
+        this.handler.removeCallbacksAndMessages((Object)null);
+    }
+
+    class BannerPagerAdapter extends PagerAdapter {
+        BannerPagerAdapter() {
+        }
+
+        public int getCount() {
+            return Banner.this.imageViews.size();
+        }
+
+        public boolean isViewFromObject(View view, Object object) {
+            return view == object;
+        }
+
+        public Object instantiateItem(ViewGroup container, final int position) {
+            container.addView((View)Banner.this.imageViews.get(position));
+            View view = (View)Banner.this.imageViews.get(position);
+            if(Banner.this.bannerListener != null) {
+                view.setOnClickListener(new OnClickListener() {
+                    public void onClick(View v) {
+                        Log.e(Banner.this.tag, "你正在使用旧版点击事件接口，下标是从1开始，为了体验请更换为setOnBannerListener，下标从0开始计算");
+                        Banner.this.bannerListener.OnBannerClick(position);
+                    }
+                });
+            }
+
+            if(Banner.this.listener != null) {
+                view.setOnClickListener(new OnClickListener() {
+                    public void onClick(View v) {
+                        Banner.this.listener.OnBannerClick(Banner.this.toRealPosition(position));
+                    }
+                });
+            }
+
+            return view;
+        }
+
+        public void destroyItem(ViewGroup container, int position, Object object) {
+            container.removeView((View)object);
+        }
     }
 }
+
